@@ -68,6 +68,6 @@ export default {
   },
   plugins: [
     require('@tailwindcss/forms'),
-      require("tailwindcss-animate")
+    require("tailwindcss-animate")
 ],
 } satisfies Config;
