@@ -1,20 +1,6 @@
-"use client"
-
 import { Form } from "@remix-run/react";
 import type { ActionFunctionArgs } from "@remix-run/node";
 import { json } from "@remix-run/node";
-import { format } from "date-fns";
-import { CalendarIcon } from "lucide-react";
-import { cn } from "~/lib/utils";
-import { useState } from "react";
-
-import { Button } from "~/components/ui/button";
-import { Calendar } from "~/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "~/components/ui/popover";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const formData = await request.formData();
@@ -24,8 +10,6 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 };
 
 export default function Index() {
-  const [date, setDate] = useState<Date>();
-
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-3xl mx-auto px-4">
@@ -66,48 +50,18 @@ export default function Index() {
 
           {/* Date of Birth */}
           <div className="space-y-2">
-            <label className="block text-lg font-medium text-gray-900">
+            <label htmlFor="dob" className="block text-lg font-medium text-gray-900">
               Client Date of Birth
             </label>
-            <div className="flex flex-col">
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant={"outline"}
-                    className={cn(
-                      "w-full justify-start text-left font-normal",
-                      !date && "text-muted-foreground"
-                    )}
-                  >
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {date ? format(date, "PPP") : <span>Pick a date</span>}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={date}
-                    onSelect={setDate}
-                    initialFocus
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
-              <input 
-                type="hidden" 
-                id="dob" 
-                name="dob" 
-                value={date ? format(date, "yyyy-MM-dd") : ""} 
-                required
-              />
-              {date && (
-                <p className="mt-2 text-sm text-gray-600">
-                  Selected date: {format(date, "MMMM do, yyyy")}
-                </p>
-              )}
-            </div>
+            <input
+              type="date"
+              id="dob"
+              name="dob"
+              required
+              max={new Date().toISOString().split('T')[0]}
+              min="1900-01-01"
+              className="mt-2 block w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500 hover:border-gray-400"
+            />
           </div>
 
           {/* Service Type */}
