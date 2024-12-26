@@ -1,13 +1,21 @@
 import { Form, useLoaderData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
-import { requireUserId } from "~/utils/session.server";
+import { requireUserId, getUserSession } from "~/utils/session.server";
 import { saveFormSubmission, getFormSubmission } from "~/utils/db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const userId = await requireUserId(request);
+  const session = await getUserSession(request);
+  const userEmail = session.get("email");
   
+  if (!userEmail) {
+    return Response.json({
+      submission: null
+    });
+  }
+
   // Get previous submission
-  const submission = await getFormSubmission(userId);
+  const submission = await getFormSubmission(userEmail);
   
   return Response.json({
     submission: submission.Item || null
@@ -16,18 +24,27 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   const userId = await requireUserId(request);
+  const session = await getUserSession(request);
+  const userEmail = session.get("email");
+
+  if (!userEmail) {
+    return Response.json(
+      { success: false, error: "User email not found" },
+      { status: 400 }
+    );
+  }
 
   const formData = await request.formData();
   const data = {
     ...Object.fromEntries(formData),
-    userId,
     submittedAt: new Date().toISOString(),
   };
 
   try {
-    await saveFormSubmission(userId, data);
+    await saveFormSubmission(userId, userEmail, data);
     return Response.json({ success: true });
   } catch (error) {
+    console.error('Form submission error:', error);
     return Response.json(
       { success: false, error: "Failed to save submission" },
       { status: 500 }

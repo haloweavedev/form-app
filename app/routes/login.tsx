@@ -46,9 +46,10 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  // Create user session with the access token
+  // Create user session with the access token and email
   return createUserSession(
     result.data.AuthenticationResult.AccessToken,
+    email,
     "/"
   );
 }

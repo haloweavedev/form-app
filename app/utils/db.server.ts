@@ -1,9 +1,12 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { 
+  DynamoDBClient,
+} from "@aws-sdk/client-dynamodb";
 import { 
   DynamoDBDocumentClient, 
   PutCommand,
   GetCommand,
-  ScanCommand
+  ScanCommand,
+  DeleteCommand
 } from "@aws-sdk/lib-dynamodb";
 
 const client = new DynamoDBClient({
@@ -12,11 +15,12 @@ const client = new DynamoDBClient({
 
 const docClient = DynamoDBDocumentClient.from(client);
 
-export async function saveFormSubmission(userEmail: string, formData: any) {
+export async function saveFormSubmission(userId: string, userEmail: string, formData: any) {
   const command = new PutCommand({
     TableName: "mindwell-forms",
     Item: {
-      userEmail,
+      userEmail,  // Primary key
+      userId,     // Additional attribute
       ...formData,
       submittedAt: new Date().toISOString()
     }
@@ -39,6 +43,17 @@ export async function getFormSubmission(userEmail: string) {
 export async function getAllSubmissions() {
   const command = new ScanCommand({
     TableName: "mindwell-forms"
+  });
+
+  return docClient.send(command);
+}
+
+export async function deleteFormSubmission(userEmail: string) {
+  const command = new DeleteCommand({
+    TableName: "mindwell-forms",
+    Key: {
+      userEmail
+    }
   });
 
   return docClient.send(command);

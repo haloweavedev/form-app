@@ -18,17 +18,19 @@ const storage = createCookieSessionStorage({
 });
 
 export async function createUserSession(
-  userId: string,
-  redirectTo: string
-) {
-  const session = await storage.getSession();
-  session.set("userId", userId);
-  return redirect(redirectTo, {
-    headers: {
-      "Set-Cookie": await storage.commitSession(session),
-    },
-  });
-}
+    userId: string,
+    userEmail: string,
+    redirectTo: string
+  ) {
+    const session = await storage.getSession();
+    session.set("userId", userId);
+    session.set("email", userEmail);
+    return redirect(redirectTo, {
+      headers: {
+        "Set-Cookie": await storage.commitSession(session),
+      },
+    });
+  }
 
 export async function getUserSession(request: Request) {
   return storage.getSession(request.headers.get("Cookie"));
