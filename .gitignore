@@ -3,3 +3,7 @@ node_modules
 /.cache
 /build
 .env
+
+aws-user-pool.txt
+aws-user-pool-client.txt
+

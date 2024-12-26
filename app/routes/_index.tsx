@@ -1,20 +1,46 @@
 import { Form } from "@remix-run/react";
-import type { ActionFunctionArgs } from "@remix-run/node";
-import { json } from "@remix-run/node";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { requireUserId } from "~/utils/session.server";
 
-export const action = async ({ request }: ActionFunctionArgs) => {
+export async function loader({ request }: LoaderFunctionArgs) {
+  // Protect this route - redirect to login if not authenticated
+  await requireUserId(request);
+  return new Response(
+    JSON.stringify({}),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
+
+export async function action({ request }: ActionFunctionArgs) {
+  // Ensure user is authenticated before handling form submission
+  const userId = await requireUserId(request);
+
   const formData = await request.formData();
-  const data = Object.fromEntries(formData);
+  const data = {
+    ...Object.fromEntries(formData),
+    userId, // Add user ID to form data
+    submittedAt: new Date().toISOString(),
+  };
+
   console.log(data);
-  return json({ success: true });
-};
+  return new Response(
+    JSON.stringify({ success: true }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
 
 export default function Index() {
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-3xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">MindWell Services Intake Form</h1>
-        
+
         <Form method="post" className="space-y-8 bg-white p-8 rounded-lg shadow-lg">
           {/* Location Selection */}
           <div className="space-y-2">
