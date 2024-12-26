@@ -1,45 +1,58 @@
-import { Form } from "@remix-run/react";
+import { Form, useLoaderData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
 import { requireUserId } from "~/utils/session.server";
+import { saveFormSubmission, getFormSubmission } from "~/utils/db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  // Protect this route - redirect to login if not authenticated
-  await requireUserId(request);
-  return new Response(
-    JSON.stringify({}),
-    {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  const userId = await requireUserId(request);
+  
+  // Get previous submission
+  const submission = await getFormSubmission(userId);
+  
+  return Response.json({
+    submission: submission.Item || null
+  });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  // Ensure user is authenticated before handling form submission
   const userId = await requireUserId(request);
 
   const formData = await request.formData();
   const data = {
     ...Object.fromEntries(formData),
-    userId, // Add user ID to form data
+    userId,
     submittedAt: new Date().toISOString(),
   };
 
-  console.log(data);
-  return new Response(
-    JSON.stringify({ success: true }),
-    {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  try {
+    await saveFormSubmission(userId, data);
+    return Response.json({ success: true });
+  } catch (error) {
+    return Response.json(
+      { success: false, error: "Failed to save submission" },
+      { status: 500 }
+    );
+  }
 }
 
 export default function Index() {
+  const { submission } = useLoaderData<typeof loader>();
+
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-3xl mx-auto px-4">
         <h1 className="text-3xl font-bold text-gray-900 mb-8">MindWell Services Intake Form</h1>
+
+        {submission && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-8">
+            <p className="text-blue-800">
+              Previous submission from {new Date(submission.submittedAt).toLocaleDateString()}
+            </p>
+            <p className="text-sm text-blue-600 mt-1">
+              Submitting again will update your previous response.
+            </p>
+          </div>
+        )}
 
         <Form method="post" className="space-y-8 bg-white p-8 rounded-lg shadow-lg">
           {/* Location Selection */}
@@ -51,6 +64,7 @@ export default function Index() {
               id="location"
               name="location"
               required
+              defaultValue={submission?.location || ""}
               className="mt-2 block w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500 hover:border-gray-400"
             >
               <option value="">Select a location</option>
@@ -69,6 +83,7 @@ export default function Index() {
               id="clientName"
               name="clientName"
               required
+              defaultValue={submission?.clientName || ""}
               className="mt-2 block w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500 hover:border-gray-400"
               placeholder="Enter your full name"
             />
@@ -84,6 +99,7 @@ export default function Index() {
               id="dob"
               name="dob"
               required
+              defaultValue={submission?.dob || ""}
               max={new Date().toISOString().split('T')[0]}
               min="1900-01-01"
               className="mt-2 block w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500 hover:border-gray-400"
@@ -102,6 +118,7 @@ export default function Index() {
                   id="therapy"
                   name="serviceType"
                   value="therapy"
+                  defaultChecked={submission?.serviceType === "therapy"}
                   required
                   className="h-5 w-5 border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
@@ -115,6 +132,7 @@ export default function Index() {
                   id="assessment"
                   name="serviceType"
                   value="assessment"
+                  defaultChecked={submission?.serviceType === "assessment"}
                   className="h-5 w-5 border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 <label htmlFor="assessment" className="ml-3 block text-base text-gray-700">
@@ -144,6 +162,7 @@ export default function Index() {
                     id={concern.toLowerCase().replace(/\s+/g, '-')}
                     name="concerns"
                     value={concern}
+                    defaultChecked={submission?.concerns?.includes(concern)}
                     className="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                   />
                   <label
@@ -166,6 +185,7 @@ export default function Index() {
               id="comments"
               name="comments"
               rows={4}
+              defaultValue={submission?.comments || ""}
               className="mt-2 block w-full rounded-lg border-2 border-gray-300 px-4 py-3 text-gray-900 focus:border-blue-500 focus:ring-blue-500 hover:border-gray-400"
               placeholder="Please provide any additional details..."
             ></textarea>
