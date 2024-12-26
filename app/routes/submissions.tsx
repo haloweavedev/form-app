@@ -1,5 +1,6 @@
 import { Form, useLoaderData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@vercel/remix";
 import { requireUserId } from "~/utils/session.server";
 import { getAllSubmissions, deleteFormSubmission } from "~/utils/db.server";
 
@@ -17,16 +18,10 @@ interface Submission {
 export async function loader({ request }: LoaderFunctionArgs) {
   await requireUserId(request);
   const result = await getAllSubmissions();
-
-  return new Response(
-    JSON.stringify({
-      submissions: result.Items || []
-    }),
-    {
-      status: 200,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  
+  return json({
+    submissions: result.Items || []
+  });
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -35,17 +30,14 @@ export async function action({ request }: ActionFunctionArgs) {
   const userEmail = formData.get("userEmail");
 
   if (typeof userEmail !== "string") {
-    return new Response(
-      JSON.stringify({ error: "Invalid email" }),
-      { status: 400, headers: { "Content-Type": "application/json" } }
+    return json(
+      { error: "Invalid email" },
+      { status: 400 }
     );
   }
 
   await deleteFormSubmission(userEmail);
-  return new Response(
-    JSON.stringify({ success: true }),
-    { status: 200, headers: { "Content-Type": "application/json" } }
-  );
+  return json({ success: true });
 }
 
 export default function Submissions() {

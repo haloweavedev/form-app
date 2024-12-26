@@ -1,23 +1,24 @@
 import { Form, useLoaderData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@vercel/remix";
 import { requireUserId, getUserSession } from "~/utils/session.server";
 import { saveFormSubmission, getFormSubmission } from "~/utils/db.server";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const userId = await requireUserId(request);
+  await requireUserId(request); // We still want to check if user is authenticated
   const session = await getUserSession(request);
   const userEmail = session.get("email");
   
   if (!userEmail) {
-    return Response.json({
+    return json({
       submission: null
     });
   }
 
-  // Get previous submission
+  // Get previous submission using userEmail
   const submission = await getFormSubmission(userEmail);
   
-  return Response.json({
+  return json({
     submission: submission.Item || null
   });
 }
@@ -28,7 +29,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const userEmail = session.get("email");
 
   if (!userEmail) {
-    return Response.json(
+    return json(
       { success: false, error: "User email not found" },
       { status: 400 }
     );
@@ -42,10 +43,10 @@ export async function action({ request }: ActionFunctionArgs) {
 
   try {
     await saveFormSubmission(userId, userEmail, data);
-    return Response.json({ success: true });
+    return json({ success: true });
   } catch (error) {
     console.error('Form submission error:', error);
-    return Response.json(
+    return json(
       { success: false, error: "Failed to save submission" },
       { status: 500 }
     );
